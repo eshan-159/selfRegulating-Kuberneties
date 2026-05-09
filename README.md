@@ -9,6 +9,40 @@ Phoenix Orchestrator is a production-grade, highly resilient Kubernetes operator
 
 By continuously evaluating service health metrics, computing composite health scores, detecting trends, and deploying autonomous remedial actions, Phoenix keeps your services alive in unpredictable, high-load production environments.
 
+## Architecture Diagram
+
+```mermaid
+graph TD
+    %% User Traffic
+    User([User/Client]) --> |External Traffic| Gateway[API Gateway / Ingress]
+    Gateway --> |Routes| Service[Microservices: Order, Payment, etc.]
+
+    %% Observability Stack
+    Service --> |Traces & Logs| OTel[OpenTelemetry Collector]
+    Service --> |Metrics Scrape| Prom[Prometheus]
+    OTel --> |Logs| Loki[Loki]
+    OTel --> |Metrics| Prom
+    OTel --> |Traces| Tempo[Tempo]
+
+    %% Operator Loop
+    subgraph Phoenix Orchestrator
+        Collector[Metrics Collector]
+        Analyzer[Anomaly Analyzer]
+        Predictor[ML Predictor]
+        Healer[Healing Engine]
+    end
+
+    Prom --> |Query Telemetry| Collector
+    Collector --> |Raw Data| Analyzer
+    Collector --> |Historical Trends| Predictor
+    Analyzer --> |Detect Anomalies| Healer
+    Predictor --> |Forecast Load| Healer
+
+    %% Remediation
+    Healer --> |ScaleUp / Rollback / Restart| K8sAPI[Kubernetes API Server]
+    K8sAPI --> |Execute Actions| Service
+```
+
 ## Architecture & Foundational Platform
 1. **Infrastructure**: Multi-node managed EKS (prod) and local k3d (dev) automated via standard Terraform. 
 2. **Intelligent Operators**: Custom Golang-based operators built upon `controller-runtime` with predictive scaling, anomaly analyzers, and an autonomous healer engine.
